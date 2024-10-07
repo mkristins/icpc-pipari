@@ -1,4 +1,8 @@
-#set page(flipped: true, numbering: "1")
+#set page(flipped: true, numbering: "1",
+margin: (
+  left: 0.5cm,
+  right: 0.5cm
+))
 
 #set heading(numbering: "1.")
 #set align(center)
@@ -9,53 +13,23 @@ LU ICPC komanda "Mazmazītiņie Pipariņi"
 - Matīss Kristiņš
 
 #columns(3, gutter: 2em)[
+= C++
 
-The equation $Q = rho A v + C$
-defines the glacial flow rate.
-
-== Table organization
-
-Total displaced soil by glacial flow:
-
-$ 7.32 beta +
-  sum_(i=0)^nabla
-    (Q_i (a_i - epsilon)) / 2 $
-
-What is ```rust fn main()``` in Rust
-would be ```c int main()``` in C.
+== Optimizations
 
 ```cpp
-int main(){
-  int x, y;
-  cin >> x >> y;
-  set<int> nihau;
-  return 0;
-}
+#pragma GCC optimize("Ofast, unroll-loops")
+#pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt,tune=native")
 ```
 
-This has ``` `backticks` ``` in it
-(but the spaces are trimmed). And
-``` here``` the leading space is
-also trimmed.
+= Algebra
 
-This has ``` `backticks` ``` in it
-(but the spaces are trimmed). And
-``` here``` the leading space is
-also trimmed.
-This has ``` `backticks` ``` in it
-(but the spaces are trimmed). And
-``` here``` the leading space is
-also trimmed.
-This has ``` `backticks` ``` in it
-(but the spaces are trimmed). And
-``` here``` the leading space is
-also trimmed.
-This has ``` `backticks` ``` in it
-(but the spaces are trimmed). And
-``` here``` the leading space is
-also trimmed.
+$ sum_(i=1)^n k^2=(n(n+1)(2n+1))/6 $
+
 ]
 
+
+#pagebreak()
 = Organization
 
 #table(
@@ -67,3 +41,5 @@ also trimmed.
   [Estimate], [], [], [], [], [], [], [], [], [], [], [], [], [],
   [\#], [], [], [], [], [], [], [], [], [], [], [], [], []
 )
+#pagebreak()
+#image("hex.png")
