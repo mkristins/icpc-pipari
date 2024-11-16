@@ -55,6 +55,13 @@ const long long mod=998244353;
 //1000000007
 long long modpow(long long n, long long m){long long res=1;while(m){if(m&1)res=res*n%mod;n=n*n%mod;m>>=1;}return res;}
 ```
+
+== C++ random
+
+```cpp
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+```
+
 = Algebra
 
 $ sum_(i=1)^n k^2=(n(n+1)(2n+1))/6 $
@@ -78,6 +85,13 @@ int gcd(int a, int b, int& x, int& y) {
     return d;
 }
 ```
+
+== Random usable primes
+
+```cpp
+666240077 964865333 115091077 378347773 568491163 295451837 658540403 856004729 843998543 380557313
+```
+
 = Data Structures
 
 == Treap
@@ -235,6 +249,89 @@ struct Dinic {
 };
 ```
 
+=== Minimum-cost Max-Flow
+
+```cpp
+struct Edge
+{
+    int from, to, capacity, cost;
+};
+
+vector<vector<int>> adj, cost, capacity;
+
+const int INF = 1e9;
+
+void shortest_paths(int n, int v0, vector<int>& d, vector<int>& p) {
+    d.assign(n, INF);
+    d[v0] = 0;
+    vector<bool> inq(n, false);
+    queue<int> q;
+    q.push(v0);
+    p.assign(n, -1);
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        inq[u] = false;
+        for (int v : adj[u]) {
+            if (capacity[u][v] > 0 && d[v] > d[u] + cost[u][v]) {
+                d[v] = d[u] + cost[u][v];
+                p[v] = u;
+                if (!inq[v]) {
+                    inq[v] = true;
+                    q.push(v);
+                }
+            }
+        }
+    }
+}
+
+int min_cost_flow(int N, vector<Edge> edges, int K, int s, int t) {
+    adj.assign(N, vector<int>());
+    cost.assign(N, vector<int>(N, 0));
+    capacity.assign(N, vector<int>(N, 0));
+    for (Edge e : edges) {
+        adj[e.from].push_back(e.to);
+        adj[e.to].push_back(e.from);
+        cost[e.from][e.to] = e.cost;
+        cost[e.to][e.from] = -e.cost;
+        capacity[e.from][e.to] = e.capacity;
+    }
+
+    int flow = 0;
+    int cost = 0;
+    vector<int> d, p;
+    while (flow < K) {
+        shortest_paths(N, s, d, p);
+        if (d[t] == INF)
+            break;
+
+        // find max flow on that path
+        int f = K - flow;
+        int cur = t;
+        while (cur != s) {
+            f = min(f, capacity[p[cur]][cur]);
+            cur = p[cur];
+        }
+
+        // apply flow
+        flow += f;
+        cost += f * d[t];
+        cur = t;
+        while (cur != s) {
+            capacity[p[cur]][cur] -= f;
+            capacity[cur][p[cur]] += f;
+            cur = p[cur];
+        }
+    }
+
+    if (flow < K)
+        return -1;
+    else
+        return cost;
+}
+```
+
 = Strings
 
 == Manacher's algorithm longest palindromic substring
@@ -320,6 +417,12 @@ int main()
 }
 ```
 = Geometry
+
+== Point to Line
+
+Line ($A x + B y + C = 0$) and point $(x_0; y_0)$ distance is:
+
+$display(d = (A x_0 + B y_0 + C)/sqrt(A^2 + B^2))$
 
 == Online Convex Hull trick
 ```cpp
@@ -695,18 +798,7 @@ ld P(ld old, ld nw, ld temp){
 
 ]
 #pagebreak()
-= Organization
 
-#table(
-  columns: (20fr, 10fr, 10fr, 10fr, 10fr, 10fr, 10fr, 10fr, 10fr, 10fr, 10fr, 10fr, 10fr, 10fr),
-  rows: (2cm, 2cm, 2cm, 2cm, 2cm),
-  [], [A], [B], [C], [D], [E], [F], [G], [H], [I], [J], [K], [L], [M],
-  [Read], [], [], [], [], [], [], [], [], [], [], [], [], [],
-  [Attempted], [], [], [], [], [], [], [], [], [], [], [], [], [],
-  [Estimate], [], [], [], [], [], [], [], [], [], [], [], [], [],
-  [\#], [], [], [], [], [], [], [], [], [], [], [], [], []
-)
-#pagebreak()
 #image("hex.png")
 #image("hex.png")
 #image("hex.png")
