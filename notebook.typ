@@ -69,6 +69,56 @@ $ sum_(i=1)^n k^3=(n(n+1)/2)^2 $
 
 = Number Theory
 
+== Rabin-Miller
+
+```cpp
+using u64 = uint64_t;
+using u128 = __uint128_t;
+
+u64 binpower(u64 base, u64 e, u64 mod) {
+    u64 result = 1;
+    base %= mod;
+    while (e) {
+        if (e & 1)
+            result = (u128)result * base % mod;
+        base = (u128)base * base % mod;
+        e >>= 1;
+    }
+    return result;
+}
+
+bool check_composite(u64 n, u64 a, u64 d, int s) {
+    u64 x = binpower(a, d, n);
+    if (x == 1 || x == n - 1)
+        return false;
+    for (int r = 1; r < s; r++) {
+        x = (u128)x * x % n;
+        if (x == n - 1)
+            return false;
+    }
+    return true;
+};
+
+bool MillerRabin(u64 n, int iter=5) { // returns true if n is probably prime, else returns false.
+    if (n < 4)
+        return n == 2 || n == 3;
+
+    int s = 0;
+    u64 d = n - 1;
+    while ((d & 1) == 0) {
+        d >>= 1;
+        s++;
+    }
+
+    for (int i = 0; i < iter; i++) {
+        int a = 2 + rand() % (n - 3);
+        if (check_composite(n, a, d, s))
+            return false;
+    }
+    return true;
+}
+```
+
 == Extended GCD
 
 ```cpp
@@ -416,13 +466,206 @@ int main()
     return 0;
 }
 ```
+
+== Suffix Array and LCP (MK)
+
+```cpp
+vector<int> suffix_array(string s){
+    int n = s.size();
+    int alphabet = 256;
+    vector<int> p(n), c(n), cnt(max(alphabet, n), 0);
+    for(int i = 0 ; i < n; i ++ ){
+        cnt[s[i]] ++ ;
+    }
+    for(int i = 1; i < cnt.size(); i ++ ){
+        cnt[i] += cnt[i - 1];
+    }
+    for(int i = 0 ; i < n; i ++ ){
+        cnt[s[i]] -- ;
+        p[cnt[s[i]]]=i;
+    } // order
+    c[p[0]] = 0;
+    int classes = 1;
+    for(int i = 1; i < n; i ++ ){
+        c[p[i]] = c[p[i - 1]]; 
+        if(s[p[i]] != s[p[i - 1]]){
+            classes ++  ;
+        }
+        c[p[i]] = classes - 1;
+    }
+    vector<int> pn(n), cn(n);
+    for (int h = 0; (1 << h) < n; ++h) {
+        for (int i = 0; i < n; i++) {
+            pn[i] = p[i] - (1 << h);
+            if (pn[i] < 0)
+                pn[i] += n;
+        }
+        fill(cnt.begin(), cnt.begin() + classes, 0);
+        for (int i = 0; i < n; i++)
+            cnt[c[pn[i]]]++;
+        for (int i = 1; i < classes; i++)
+            cnt[i] += cnt[i-1];
+        for (int i = n-1; i >= 0; i--)
+            p[--cnt[c[pn[i]]]] = pn[i];
+        cn[p[0]] = 0;
+        classes = 1;
+        for (int i = 1; i < n; i++) {
+            pair<int, int> cur = {c[p[i]], c[(p[i] + (1 << h)) % n]};
+            pair<int, int> prev = {c[p[i-1]], c[(p[i-1] + (1 << h)) % n]};
+            if (cur != prev)
+                ++classes;
+            cn[p[i]] = classes - 1;
+        }
+        c.swap(cn);
+    }
+    return p;
+}
+
+vector<int> lcp_construct(string s, vector<int> p){
+    int n = s.size();
+    vector<int> rank(n, 0);
+    for (int i = 0; i < n; i++)
+        rank[p[i]] = i;
+
+    int k = 0;
+    vector<int> lcp(n-1, 0);
+    for (int i = 0; i < n; i++) {
+        if (rank[i] == n - 1) {
+            k = 0;
+            continue;
+        }
+        int j = p[rank[i] + 1];
+        while (i + k < n && j + k < n && s[i+k] == s[j+k])
+            k++;
+        lcp[rank[i]] = k;
+        if (k)
+            k--;
+    }
+    return lcp;
+}
+
+void baseline(string s){
+    vector<int> suffix = suffix_array(s);
+    suffix.erase(suffix.begin());
+    s.pop_back();
+    vector<int> lcp = lcp_construct(s, suffix);
+}
+```
+
+== Aho-Corasick
+
+```cpp
+const int K = 26;
+
+struct Vertex {
+    int next[K];
+    bool output = false;
+    int p = -1;
+    char pch;
+    int link = -1;
+    int go[K];
+
+    Vertex(int p=-1, char ch='$') : p(p), pch(ch) {
+        fill(begin(next), end(next), -1);
+        fill(begin(go), end(go), -1);
+    }
+};
+
+vector<Vertex> t(1);
+
+void add_string(string const& s) {
+    int v = 0;
+    for (char ch : s) {
+        int c = ch - 'a';
+        if (t[v].next[c] == -1) {
+            t[v].next[c] = t.size();
+            t.emplace_back(v, ch);
+        }
+        v = t[v].next[c];
+    }
+    t[v].output = true;
+}
+
+int go(int v, char ch);
+
+int get_link(int v) {
+    if (t[v].link == -1) {
+        if (v == 0 || t[v].p == 0)
+            t[v].link = 0;
+        else
+            t[v].link = go(get_link(t[v].p), t[v].pch);
+    }
+    return t[v].link;
+}
+
+int go(int v, char ch) {
+    int c = ch - 'a';
+    if (t[v].go[c] == -1) {
+        if (t[v].next[c] != -1)
+            t[v].go[c] = t[v].next[c];
+        else
+            t[v].go[c] = v == 0 ? 0 : go(get_link(v), ch);
+    }
+    return t[v].go[c];
+} 
+```
+
+== KMP
+
+```cpp
+vector<int> prefix_function(string s) {
+    int n = (int)s.length();
+    vector<int> pi(n);
+    for (int i = 1; i < n; i++) {
+        int j = pi[i-1];
+        while (j > 0 && s[i] != s[j])
+            j = pi[j-1];
+        if (s[i] == s[j])
+            j++;
+        pi[i] = j;
+    }
+    return pi;
+}
+```
+
+== Z-Function
+
+```cpp
+vector<int> z_function(string s) {
+    int n = s.size();
+    vector<int> z(n);
+    int l = 0, r = 0;
+    for(int i = 1; i < n; i++) {
+        if(i < r) {
+            z[i] = min(r - i, z[i - l]);
+        }
+        while(i + z[i] < n && s[z[i]] == s[i + z[i]]) {
+            z[i]++;
+        }
+        if(i + z[i] > r) {
+            l = i;
+            r = i + z[i];
+        }
+    }
+    return z;
+}
+```
+
 = Geometry
 
 == Point to Line
 
 Line ($A x + B y + C = 0$) and point $(x_0; y_0)$ distance is:
 
-$display(d = (A x_0 + B y_0 + C)/sqrt(A^2 + B^2))$
+$display(d = (|A x_0 + B y_0 + C|)/sqrt(A^2 + B^2))$
+
+== Cross Product in 2D space
+
+$arrow(a) circle.stroked.tiny arrow(b) = a_x b_y - a_y b_x$
+
+== Shoelace formula
+
+$A = 1/2 sum_(i=1)^n x_i (y_(i + 1) - y_(i - 1))$ (counter clock wise direction)
 
 == Online Convex Hull trick
 ```cpp
@@ -795,6 +1038,10 @@ ld P(ld old, ld nw, ld temp){
   }
 }
 ```
+
+= Out of ideas?
+
+1. $"opt"(i) lt.eq "opt"(i + 1)$
 
 ]
 #pagebreak()
