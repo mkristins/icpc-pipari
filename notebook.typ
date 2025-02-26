@@ -1,37 +1,41 @@
-#set page(flipped: true, numbering: "1",
+#set page(flipped: true,
 margin: (
-  left: 0.5cm,
-  right: 0.5cm,
-  top: 0.5cm,
+  left: 0.8cm,
+  right: 0.8cm,
+  top: 1cm,
   bottom: 1cm
-))
+),
+header: context [
+    #h(1fr)
+    #counter(page).display(
+        "1/1",
+        both: true,
+    )
+])
 
 #set heading(numbering: "1.")
 #set align(center)
 
-#set text(
-    size: 10pt,
-    font: "New Computer Modern"
-)
-
-#block(
-    spacing: 2em
-)[
-    LU ICPC komanda "Mazmazītiņie Pipariņi"
-    - Valters Kļaviņš
-    - Ansis Gustavs Andersons
-    - Matīss Kristiņš
-]
-
-#set text(
-    size: 8pt,
-    font: "New Computer Modern"
-)
 
 #set align(left)
 
 #columns(3, gutter: 2em)[
 
+#set text(
+    size: 10pt,
+    font: "New Computer Modern"
+)
+University of Latvia
+
+"Teeny Tiny Peppers" (LU 1)
+- Valters Kalniņš
+- Ansis Gustavs Andersons
+- Matīss Kristiņš
+
+#set text(
+    size: 8pt,
+    font: "New Computer Modern"
+)
 #outline()
 
 = C++
