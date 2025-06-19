@@ -27,9 +27,9 @@ header: context [
 )
 University of Latvia
 
-"Teeny Tiny Peppers" (LU 1)
+"Skrupulozās zemenītes" (LU)
 - Valters Kalniņš
-- Ansis Gustavs Andersons
+- Kristaps Štāls
 - Matīss Kristiņš
 
 #set text(
