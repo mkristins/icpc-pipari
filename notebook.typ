@@ -406,6 +406,61 @@ int manacher(string s){
 }
 ```
 
+== Palindromic Tree (eertree)
+
+```cpp
+struct eertree{
+    
+    int nex[N][AL];
+    int ret[N];
+    int par[N];
+    int len[N];
+
+    int id;
+    void init(){
+        len[0] = -1;
+        ret[0] = 0;
+
+        len[1] = 0;
+        ret[1] = 0;
+        
+        id = 2;
+    }
+    string s;
+    int n;
+    void construct(string _s){
+        s = _s;
+        n = s.size();
+        int las = 1;
+        for(int i = 0 ; i < n; i ++ ){
+            int cur = las;
+            int l = s[i] - 'a' + 1;
+            while(i - len[cur] - 1 < 0 || s[i] != s[i - len[cur] - 1]){
+                cur = ret[cur];
+            }
+            if(nex[cur][l] == 0){
+                nex[cur][l] = id;
+                len[id] = len[cur] + 2;
+                par[id] = cur;
+                if(cur == 0){
+                    ret[id] = 1;
+                }
+                else{
+                    int w = ret[cur];
+                    while(i - len[w] - 1 < 0 || s[i] != s[i - len[w] - 1]){
+                        w = ret[w];
+                    }
+                    ret[id] = nex[w][l];
+                }
+                id ++ ; 
+            }
+            las = nex[cur][l];
+        }
+    }
+    
+};
+```
+
 == Suffix Array
 
 ```cpp

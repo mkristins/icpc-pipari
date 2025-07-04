@@ -1,3 +1,3 @@
 # icpc-pipari
 
-2024. gada ICPC komandas "Mazmazītiņie Pipariņi" komandas dokuments
+2025./2026. gada LU ICPC komandas "Skrupulozās Zemenītes" komandas dokuments
