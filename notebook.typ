@@ -1103,6 +1103,8 @@ int gauss (vector < vector<double> > a, vector<double> & ans) {
 }
 ```
 
+#include "geometry.typ"
+
 = General
 
 == Simulated Annealing
