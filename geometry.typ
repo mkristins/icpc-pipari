@@ -22,6 +22,10 @@ struct Point{
     Point perp() const {
         return Point{-y, x}; // rotates +90 degrees
     }
+    bool operator<(Point &o){
+        if(x == o.x) return y < o.y;
+        else return x < o.x;
+    }
     T cross(Point a) const {
         return x * a.y - y * a.x;
     }
@@ -36,6 +40,11 @@ struct Point{
     }
 };
 ```
+== Cross Product
+
+#image("cross.png")
+
+In this case $arrow(a) times arrow(b) = a_x dot b_y - a_y dot b_x > 0$
 
 == Circumcenter
 
@@ -81,4 +90,15 @@ pair<P, double> enclose(vector<P> ps) {
     }
     return {o, r};
 }
+```
+
+== Polar-Sort
+
+```cpp
+sort(X.begin(), X.end(), [&](Point<int> a, Point<int> b){
+    Point<int> origin{0, 0};
+    bool ba = a < origin, bb = b < origin;
+    if(ba != bb) {return ba < bb;}
+    else return a.cross(b) > 0;
+});
 ```

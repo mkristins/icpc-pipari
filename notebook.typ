@@ -146,6 +146,20 @@ int gcd(int a, int b, int& x, int& y) {
 666240077 964865333 115091077 378347773 568491163 295451837 658540403 856004729 843998543 380557313
 ```
 
+= Combinatorics
+
+== Stars and bars
+
+$n$ balls, $k$ boxes:
+
+$ binom(n + k - 1, k - 1) $
+
+== Vandermorde idenitity (and variants)
+
+$ binom(m + n, r) = sum binom(n, k) binom(n, r - k)$
+
+$ sum binom(n, x) binom(m, x) = binom(n + m, n)$
+
 = Data Structures
 
 == Treap
