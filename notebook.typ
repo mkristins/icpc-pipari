@@ -140,6 +140,37 @@ int gcd(int a, int b, int& x, int& y) {
 }
 ```
 
+== Chinese Remainder Theorem
+
+Notes: 
+- Assumes all modulo are pairwise coprime
+- If not, splitting modulos using prime powers works
+
+```cpp
+int mod_inv(int a, int mod){
+    int x, y;
+    int g = extGcd(a, mod, x, y);
+    x = (x % mod + mod) % mod;
+    return x;
+}
+
+pair<int, int> crt(vector<pair<int, int>> congurences){
+    // {mod, remainder}
+    int M = 1;
+    for(auto c : congurences){
+        M *= c.first;
+    }
+    int solution = 0;
+    for(auto c : congurences) {
+        int a_i = c.second;
+        int m_i = M / c.first;
+        int n_i = mod_inv(m_i, c.first);
+        solution = (solution + a_i * m_i % M * n_i) % M;
+    }
+    return {M, solution};
+}
+
+```
 == Random usable primes
 
 ```cpp
