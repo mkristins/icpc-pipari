@@ -220,6 +220,126 @@ void split(pnode cur, pnode &lef, pnode &rig, int key){
 }
 ```
 
+= Graphs
+
+== k-shortest path
+
+```cpp
+mt19937 mt(119);
+template <typename T> using min_priority_queue = priority_queue<T, vector<T>, greater<T>>;
+
+template <typename T>
+struct heap_node{
+    array<heap_node*, 2> c;
+    T key;
+};
+
+template <typename T>
+heap_node<T>* insert(heap_node<T>* a, T new_key) {
+    if(!a || new_key.first < a->key.first){
+        heap_node<T>* n = new heap_node<T>;
+        n->c = {a, nullptr};
+        n->key = new_key;
+        return n;
+    }
+    a = new heap_node<T>(*a);
+    int z = mt() & 1;
+    a->c[z] = insert(a->c[z], new_key);
+    return a;
+}
+
+vector<ll> k_shortest_paths(int n, vector<pair<array<int, 2>, ll>> edges, int st, int en, int K){
+    int M = edges.size();
+    vector<vector<tuple<int, int, ll>>> radj(n);
+    for(int e = 0; e < M; e ++ ){
+        auto [x, l] = edges[e];
+        auto [u, v] = x;
+        radj[v].push_back({e, u, l});
+    }
+    vector<ll> dist(n, -1);
+    vector<int> prvE(n, -1);
+    vector<int> toposort;
+    {
+        min_priority_queue<pair<ll, int>> pq;
+        pq.push({dist[en] = 0, en});
+        while(!pq.empty()){
+            ll d = pq.top().first;
+            int cur = pq.top().second;
+            pq.pop();
+            if(d > dist[cur]) continue;
+            toposort.push_back(cur);
+            // for(auto [e, nxt, l] : radj[cur]){
+            for(auto ee : radj[cur]){
+                int e = get<0>(ee);
+                int nxt = get<1>(ee);
+                int l = get<2>(ee);
+                if(dist[nxt] == -1 || d + l < dist[nxt]){
+                    prvE[nxt] = e;
+                    pq.push({dist[nxt] = d + l, nxt});
+                }
+            }
+        }
+    }
+    vector<vector<pair<ll, int>>> adj(n);
+    for(int e = 0; e < M; e ++){
+        auto& [x, l] = edges[e];
+        const auto& [u, v] = x;
+        if(dist[v] == -1) continue;
+
+        l += dist[v] - dist[u];
+
+        if(e == prvE[u]) continue;
+        adj[u].push_back({l, v});
+    }
+    for(int i = 0 ; i < n; i ++ ){
+        sort(adj[i].begin(), adj[i].end());
+        adj[i].push_back({-1, -1});
+    }
+    using iter_t = decltype(adj[0].begin());
+    using hnode = heap_node<pair<ll, iter_t>>;
+    vector<hnode*> node_roots(n, nullptr);
+    for(int cur : toposort){
+        if(cur != en){
+            int prv = edges[prvE[cur]].first[1];
+            node_roots[cur] = node_roots[prv];
+        } else {
+            node_roots[cur] = nullptr;
+        }
+        const auto& [l, nxt] = adj[cur][0];
+        if(nxt != -1){
+            node_roots[cur] = insert(node_roots[cur], {l, adj[cur].begin()});
+        }
+    }
+    vector<pair<ll, int>> dummy_adj({{0, st}, {-1, -1}});
+    vector<ll> res; res.reserve(K);
+    min_priority_queue<tuple<ll, hnode*, iter_t>> q;
+    q.push({dist[st], nullptr, dummy_adj.begin()});
+    while(int(res.size()) < K && !q.empty()) {
+        auto [l, start_heap, val_iter] = q.top(); q.pop();
+        res.push_back(l);
+        ll elen = val_iter->first;
+        if(next(val_iter)->second != -1){
+            q.push({l - elen + next(val_iter)->first, nullptr, next(val_iter)});
+        }
+        if(start_heap){
+            for(int z = 0; z < 2 ; z ++ ){
+                auto nxt_start = start_heap->c[z];
+                if(!nxt_start) continue;
+                q.push({l - elen + nxt_start->key.first, nxt_start, nxt_start->key.second});
+            }
+        }
+        {
+            int nxt = val_iter->second;
+            auto nxt_start = node_roots[nxt];
+            if(nxt_start) {
+                q.push({l + nxt_start->key.first, nxt_start, nxt_start->key.second});
+            } 
+        }
+    }
+    return res;
+}
+```
+
 = Algoritms
 
 == Kuhn's algorithm
