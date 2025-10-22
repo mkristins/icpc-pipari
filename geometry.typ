@@ -40,6 +40,7 @@ struct Point{
     }
 };
 ```
+
 == Cross Product
 
 #image("cross.png")
@@ -58,6 +59,28 @@ double ccRadius(const P& A, const P& B, const P& C) {
 P ccCenter(const P& A, const P& B, const P& C) {
     P b = C-A, c = B-A;
     return A + (b*c.dist2()-c*b.dist2()).perp()/b.cross(c)/2;
+}
+```
+
+== Line Distance
+
+```cpp
+typedef Point<double> P;
+double lineDist(const P& a, const P& b, const P& p) {
+    return (double)(b-a).cross(p-a)/(b-a).dist();
+}
+```
+
+== Line Intersection
+
+```cpp
+typedef Point<double> P;
+pair<int, P> lineInter(P s1, P e1, P s2, P e2) {
+    auto d = (e1 - s1).cross(e2 - s2);
+    if (d == 0) // i f pa ra l l e l
+        return {-(s1.cross(e1, s2) == 0), P(0, 0)};
+    auto p = s2.cross(e1, e2), q = s2.cross(e2, s1);
+    return {1, (s1 * p + e1 * q) / d};
 }
 ```
 
