@@ -60,6 +60,16 @@ const long long mod=998244353;
 long long modpow(long long n, long long m){long long res=1;while(m){if(m&1)res=res*n%mod;n=n*n%mod;m>>=1;}return res;}
 ```
 
+== Bitset
+
+```cpp
+bitset<10> bb("1010000000"); // reverse order constructor 
+cout << bb.count() << "\n"; // 2
+cout << bb._Find_first() << "\n"; // 7
+bb[0] = 1;
+cout << bb._Find_first() << "\n"; // 0
+```
+
 == C++ random
 
 ```cpp
