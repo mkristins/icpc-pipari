@@ -187,6 +187,29 @@ pair<int, int> crt(vector<pair<int, int>> congurences){
 666240077 964865333 115091077 378347773 568491163 295451837 658540403 856004729 843998543 380557313
 ```
 
+== Euler's totient function
+
+Useful stuff: $a^phi(n) equiv 1 (mod n)$ if $gcd(a, n) = 1$
+
+$sum_(i|n) phi(i) = n$
+
+```cpp
+phi[1] = 1;
+for(ll i = 2; i <= n; i ++ ){
+    phi[i] = i;
+}
+for(ll i = 2; i <= n ; i ++ ){
+    if(pr[i] == false){
+        for(ll j = i ; j <= n; j += i){
+            phi[j] /= i;
+            phi[j] *= (i - 1);
+            pr[j] = true;
+        }
+    }
+}
+
+```
+
 = Combinatorics
 
 == Stars and bars
