@@ -506,79 +506,75 @@ struct Dinic {
 ```cpp
 struct Edge
 {
-    int from, to, capacity, cost;
+    int from;
+    int to;
+    int capacity;
+    int cost;
 };
 
 vector<vector<int>> adj, cost, capacity;
+const int inf = (int)1e9;
 
-const int INF = 1e9;
-
-void shortest_paths(int n, int v0, vector<int>& d, vector<int>& p) {
-    d.assign(n, INF);
+void shortest_paths(int n, int v0, vector<Edge> &edges, vector<int>& d, vector<int>& p){
+    d.assign(n, inf);
     d[v0] = 0;
     vector<bool> inq(n, false);
     queue<int> q;
     q.push(v0);
     p.assign(n, -1);
-
-    while (!q.empty()) {
+    while(!q.empty()){
         int u = q.front();
         q.pop();
         inq[u] = false;
-        for (int v : adj[u]) {
-            if (capacity[u][v] > 0 && d[v] > d[u] + cost[u][v]) {
-                d[v] = d[u] + cost[u][v];
-                p[v] = u;
-                if (!inq[v]) {
-                    inq[v] = true;
-                    q.push(v);
+        for(int v : adj[u]){
+            if(edges[v].capacity > 0 && d[edges[v].to] > d[u] + edges[v].cost){
+                d[edges[v].to] = d[u] + edges[v].cost;
+                p[edges[v].to] = v;
+                if(!inq[edges[v].to]) {
+                    inq[edges[v].to] = true;
+                    q.push(edges[v].to);
                 }
             }
         }
     }
 }
 
-int min_cost_flow(int N, vector<Edge> edges, int K, int s, int t) {
-    adj.assign(N, vector<int>());
-    cost.assign(N, vector<int>(N, 0));
-    capacity.assign(N, vector<int>(N, 0));
-    for (Edge e : edges) {
-        adj[e.from].push_back(e.to);
-        adj[e.to].push_back(e.from);
-        cost[e.from][e.to] = e.cost;
-        cost[e.to][e.from] = -e.cost;
-        capacity[e.from][e.to] = e.capacity;
+int min_cost_flow(int n, vector<Edge> edges, int K, int s, int t){
+    int m = 0;
+    adj.resize(n);
+    vector<Edge> edg;
+    for(Edge e : edges){
+        edg.push_back({e.from, e.to, e.capacity, e.cost});
+        edg.push_back({e.to, e.from, 0, -e.cost});
+        adj[e.from].push_back(m);
+        adj[e.to].push_back(m + 1);
+        m += 2;
     }
-
     int flow = 0;
     int cost = 0;
     vector<int> d, p;
-    while (flow < K) {
-        shortest_paths(N, s, d, p);
-        if (d[t] == INF)
+    while(flow < K){
+        shortest_paths(n, s, edg, d, p);
+        if(d[t] == inf)
             break;
-
-        // find max flow on that path
         int f = K - flow;
         int cur = t;
-        while (cur != s) {
-            f = min(f, capacity[p[cur]][cur]);
-            cur = p[cur];
+        while(cur != s){
+            f = min(f, edg[p[cur]].capacity);
+            cur = edg[p[cur]].from;
         }
 
-        // apply flow
         flow += f;
         cost += f * d[t];
         cur = t;
-        while (cur != s) {
-            capacity[p[cur]][cur] -= f;
-            capacity[cur][p[cur]] += f;
-            cur = p[cur];
+        while(cur != s){
+            edg[p[cur]].capacity -= f;
+            edg[p[cur]^1].capacity += f;
+            cur = edg[p[cur]].from;
         }
     }
-
-    if (flow < K)
-        return -1;
+    if(flow < K)
+        return -inf;
     else
         return cost;
 }
