@@ -1448,7 +1448,7 @@ ld P(ld old, ld nw, ld temp){
 = Out of ideas?
 
 1. $"opt"(i) lt.eq "opt"(i + 1)$
-
+2. Divide & Conquer on queries. Object $A_i$ exists for query range $[L_i;R_i]$ - construct a segtree assuming $A_i$ can be rerolled.
 ]
 #pagebreak()
 
