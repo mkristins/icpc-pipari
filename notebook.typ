@@ -418,6 +418,195 @@ int main()
 }
 ```
 
+== Hopcroft-Karp (Max Matching)
+
+```cpp
+// Hopcroft-Karp maximal matching in O(E*sqrt(V))
+
+struct HopcroftKarp {
+    int n, m;
+    const int NIL = 0, INF = INT_MAX;  
+    vector<int> pair_u, pair_v, dist;   
+    vector<vector<int>> adj;
+
+    HopcroftKarp() {};
+    HopcroftKarp(int n, int m) : n(n), m(m) {
+        adj.resize(n+1);
+    }
+
+    // 1-indexed
+    void add_edge(int u, int v) {adj[u].push_back(v);}
+
+    int calc() {
+        pair_u.assign(n+1, NIL);
+        pair_v.assign(m+1, NIL);
+        dist.assign(n+1, 0);
+        int ans = 0;
+        while (bfs()) {
+            for (int u = 1; u <= n; u++) {
+                if (pair_u[u] == NIL && dfs(u)) ans++;
+            }
+        }
+        return ans;
+    }
+
+    bool bfs() {
+        queue<int> q;
+        for (int u = 1; u <= n; u++) {
+            dist[u] = INF;
+            if (pair_u[u] != NIL) continue;
+            q.push(u);
+            dist[u] = 0;
+        }
+        dist[NIL] = INF;
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            if (dist[u] >= dist[NIL]) continue;
+            for (auto &v : adj[u]) {
+                if (dist[pair_v[v]] != INF) continue;
+                dist[pair_v[v]] = dist[u] + 1; 
+                q.push(pair_v[v]);
+            }
+        }
+        return (dist[NIL] != INF);
+    }
+
+    bool dfs(int u) {
+        if (u == NIL) return true;
+        for (auto &v : adj[u]) {
+            if (dist[pair_v[v]] != dist[u] + 1 || !dfs(pair_v[v])) continue;
+            pair_v[v] = u;
+            pair_u[u] = v;
+            return true;
+        }
+        dist[u] = INF;
+        return false;
+    }
+};
+```
+
+== Hungarian Algorithm (Min cost, Max matching)
+
+```cpp
+// Hungarian algorithm O(n^3) (but fast)
+// 1-indexed
+// It finds minimum cost maximum matching.
+// For finding maximum cost maximum matching add -cost and return -matching()
+// matching stored in l array. l[i] contains index of right side element that is match with the i-th left side element.
+const int N = 1024;
+struct Hungarian {
+    ll c[N][N], fx[N], fy[N], d[N];
+    int l[N], r[N], arg[N], trace[N];
+    queue<int> q;
+    int start, finish, n;
+    const ll inf = 1e18;
+    Hungarian() {}
+    Hungarian(int n1, int n2) {init(n1, n2);}
+    void init(int n1, int n2) {
+        n = max(n1, n2);
+        for (int i = 1; i <= n; ++i) {
+            fy[i] = l[i] = r[i] = 0;
+            for (int j = 1; j <= n; ++j) c[i][j] = inf;
+        }
+    }
+    void add_edge(int u, int v, ll cost) {
+        c[u][v] = min(c[u][v], cost);
+    }
+    inline ll getC(int u, int v) {
+        return c[u][v] - fx[u] - fy[v];
+    }
+    void init_bfs() {
+        while (!q.empty()) q.pop();
+        q.push(start);
+        for (int i = 0; i <= n; ++i) trace[i] = 0;
+        for (int v = 1; v <= n; ++v) {
+            d[v] = getC(start, v);
+            arg[v] = start;
+        }
+        finish = 0;
+    }
+    void find_aug_path() {
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (int v = 1; v <= n; ++v) if (!trace[v]) {
+                ll w = getC(u, v);
+                if (!w) {
+                    trace[v] = u;
+                    if (!r[v]) {
+                        finish = v;
+                        return;
+                    }
+                    q.push(r[v]);
+                }
+                if (d[v] > w) {
+                    d[v] = w;
+                    arg[v] = u;
+                }
+            }
+        }
+    }
+    void subX_addY() {
+        ll delta = inf;
+        for (int v = 1; v <= n; ++v) if (trace[v] == 0 && d[v] < delta) {
+            delta = d[v];
+        }
+        fx[start] += delta;
+        for (int v = 1; v <= n; ++v) if(trace[v]) {
+            int u = r[v];
+            fy[v] -= delta;
+            fx[u] += delta;
+        } else d[v] -= delta;
+        for (int v = 1; v <= n; ++v) if (!trace[v] && !d[v]) {
+            trace[v] = arg[v];
+            if (!r[v]) {
+                finish = v; return;
+            }
+            q.push(r[v]);
+        }
+    }
+    void enlarge() {
+        do {
+            int u = trace[finish];
+            int nxt = l[u];
+            l[u] = finish;
+            r[finish] = u;
+            finish = nxt;
+        } while (finish);
+    }
+    ll maximum_matching() {
+        for (int u = 1; u <= n; ++u) {
+            fx[u] = c[u][1];
+            for (int v = 1; v <= n; ++v) {
+                fx[u] = min(fx[u], c[u][v]);
+            }
+        }
+        for (int v = 1; v <= n; ++v) {
+            fy[v] = c[1][v] - fx[1];
+            for (int u = 1; u <= n; ++u) {
+                fy[v] = min(fy[v], c[u][v] - fx[u]);
+            }
+        }
+        for (int u = 1; u <= n; ++u) {
+            start = u;
+            init_bfs();
+            while (!finish) {
+                find_aug_path();
+                if (!finish) subX_addY();
+            }
+            enlarge();
+        }
+        ll ans = 0;
+        for (int i = 1; i <= n; ++i) {
+            if (c[i][l[i]] != inf) ans += c[i][l[i]];
+            else l[i] = 0;
+        }
+        return ans;
+    }
+};
+
+```
+
 = Flows
 
 == Dinitz
@@ -1444,6 +1633,1237 @@ ld P(ld old, ld nw, ld temp){
   }
 }
 ```
+
+= janY's 2D Geometry
+
+== vec2
+
+```cpp
+typedef long double ld;
+
+const ld eps = 1e-9, inf = 1e9;
+
+template<typename V>
+struct vec2 {
+    V x, y;
+ 
+    vec2(): x(0), y(0) {}
+    vec2(V x, V y): x(x), y(y) {}
+    // optional conversion constructor
+    template<typename U> vec2(const vec2<U>& other) : x(other.x), y(other.y) {} 
+
+    // optional
+    V length() {return sqrt(x * x + y * y);}
+ 
+    V dot(vec2<V> other) {return x*other.x + y*other.y;}
+ 
+    // a.cross(b)>0: b is to the left of a
+    // a.cross(b)<0: b is to the right of a
+    // a.cross(b)=0: vectors are collinear (same or opposite direction)
+    V cross(vec2<V> other) {return x*other.y - y*other.x;}
+ 
+    // optional
+    void reduce(bool pos_x = false) { // only for integer
+        V g = __gcd(x, y);
+        if (g == 0) return;
+        if (g < 0) g = -g;
+        x /= g;
+        y /= g;
+        // ensure canonical representation for direction
+        if (pos_x && (x < 0 || (x == 0 && y < 0))) {
+            x = -x;
+            y = -y;
+        }
+    }
+ 
+    // optional (need .length())
+    void normalize() { // only for floating point
+        V len = this->length();
+        if (len == 0) return;
+        x /= len;
+        y /= len;
+    }
+
+    // optional, rotate angle radians around (0, 0).
+    void rotate(ld angle) { // only for floating point
+        ld sin_angle = sin(angle);
+        ld cos_angle = cos(angle);
+        V new_x = x*cos_angle - y*sin_angle;
+        y = x*sin_angle + y*cos_angle;
+        x = new_x;
+    }
+
+    // optional, returns new vec2 rotated angle radians around (0, 0).
+    vec2 rotated(ld angle) {
+        vec2<V> thiz = *this;
+        thiz.rotate(angle);
+        return thiz;
+    }
+
+    // optional
+    void rotate90() {V new_x = -y; y = x; x = new_x;}
+ 
+    // optional, returns angle between two directions, always positive
+    ld angle_to(vec2<V> w) {
+        ld cos_theta = (dot(w) / w.length()) / length();
+        return acos(max((ld)-1.0, min((ld)1.0, cos_theta)));
+    }
+
+    //optional addition/subtraction
+    vec2 operator+(const vec2<V>& other) {return vec2(x + other.x, y + other.y);}
+    vec2 operator-(const vec2<V>& other) {return vec2(x - other.x, y - other.y);}
+
+    // optional scalar multiplication
+    vec2 operator*(const V& k) {return vec2(x * k, y * k);}
+    vec2& operator*=(const V& k) {x *= k; y *= k; return *this;}
+
+    // optional scalar division
+    vec2 operator/(const V& k) {return vec2(x / k, y / k);}
+    vec2& operator/=(const V& k) {x /= k; y /= k; return *this;}
+ 
+    // optional equality operators
+    bool operator==(const vec2<V>& other) {return x == other.x && y == other.y;}
+    bool operator!=(const vec2<V>& other) {return !(*this == other);}
+};
+ 
+// optional nice cout
+template<typename V>
+ostream& operator<<(ostream& os,  const vec2<V>& v) {
+    return os << "(" << v.x << " " << v.y << ")";
+}
+ 
+// optional nice cin
+template<typename V>
+istream& operator>>(istream& is, vec2<V>& v) {
+    return is >> v.x >> v.y;
+}
+```
+
+== 2D Geometric Functions
+
+```cpp
+// line line intersection
+// returns true if exists, stores result in out
+bool line_intersection(vec2<ld> p1, vec2<ld> d1, vec2<ld> p2, vec2<ld> d2, vec2<ld> &out) {
+    ld cross_d = d1.cross(d2);
+    if (abs(cross_d) < 1e-10) return false;
+    vec2<ld> r = p2 - p1;
+    ld t1 = r.cross(d2) / cross_d;
+    out = p1 + d1 * t1;
+    return true;
+}
+
+// circle circle intersection
+// returns true if exists, stores result in out
+bool circle_circle(vec2<ld> c1, ld r1, vec2<ld> c2, ld r2, pair<vec2<ld>,vec2<ld>> &out) {
+    ld d = (c2-c1).length();
+    ld co = (d*d + r1*r1 - r2*r2)/(2*d*r1);
+    if (abs(co) > 1) return false;
+    ld alpha = acos(co);
+    vec2<ld> rad = (c2-c1)/d*r1; // vector C1C2 resized to have length r1
+    out = {c1 + rad.rotated(-alpha), c1 + rad.rotated(alpha)};
+    return true;
+}
+
+// quadratic formula a*x^2 + b*x + c = 0
+// returns root count and stores result in out
+int quad_roots(ld a, ld b, ld c, pair<ld,ld> &out) {
+    assert(a != 0);
+    ld disc = b*b - 4*a*c;
+    if (disc < 0) return 0;
+    ld sum = (b >= 0) ? -b-sqrt(disc) : -b+sqrt(disc);
+    out = {sum/(2*a), sum == 0 ? 0 : (2*c)/sum};
+    return 1 + (disc > 0);
+}
+
+struct StableSum {
+    int cnt = 0;
+    vector<ld> v, pref{0};
+    void operator+=(ld a) {
+        assert(a >= 0);
+        int s = ++cnt;
+        while (s % 2 == 0) {
+            a += v.back();
+            v.pop_back(), pref.pop_back();
+            s /= 2;
+        }
+        v.push_back(a);
+        pref.push_back(pref.back() + a);
+    }
+    ld val() {return pref.back();}
+};
+
+// sorts starting from (1, 0) inclusive going clockwise.
+template<typename T> bool half(const vec2<T> &p) {
+    return (p.y < 0 || (p.y == 0 && p.x < 0));
+}
+template<typename T> void polar_sort(vector<vec2<T>> &v) {
+    sort(v.begin(), v.end(), [](vec2<T> v, vec2<T> w) {
+        return make_tuple(half(v), 0) < make_tuple(half(w), v.cross(w));
+    });
+}
+```
+
+== Halfplane Intersection
+
+```cpp
+// Basic half-plane struct.
+struct Halfplane { 
+    // 'p' is a passing point of the line and 'pq' is the direction vector of the line.
+    vec2<ld> p, pq; 
+    ld angle;
+
+    Halfplane() {}
+    Halfplane(vec2<ld> a, vec2<ld> b) : p(a), pq(b-a) {
+        angle = atan2l(pq.y, pq.x);
+    }
+
+    // Check if point 'r' is outside this half-plane. 
+    // Every half-plane allows the region to the LEFT of its line.
+    bool out(vec2<ld> r) { 
+        return pq.cross(r - p) < -eps; 
+    }
+
+    // Comparator for sorting. 
+    bool operator<(const Halfplane& e) const { 
+        return angle < e.angle;
+    } 
+
+    // Intersection point of the lines of two half-planes. It is assumed they're never parallel.
+    vec2<ld> inter(Halfplane& t) {
+        ld alpha = (t.p - p).cross(t.pq) / pq.cross(t.pq);
+        return p + (pq * alpha);
+    }
+};
+
+vector<vec2<ld>> hp_intersect(vector<Halfplane>& H) { 
+
+    vec2<ld> box[4] = {  // Bounding box in CCW order
+        vec2<ld>(inf, inf),
+        vec2<ld>(-inf, inf),
+        vec2<ld>(-inf, -inf),
+        vec2<ld>(inf, -inf)
+    };
+
+    for(int i = 0; i<4; i++) { // Add bounding box half-planes.
+        Halfplane aux(box[i], box[(i+1) % 4]);
+        H.push_back(aux);
+    }
+
+    // Sort by angle and start algorithm
+    sort(H.begin(), H.end());
+    deque<Halfplane> dq;
+    int len = 0;
+    for(int i = 0; i < int(H.size()); i++) {
+
+        // Remove from the back of the deque while last half-plane is redundant
+        while (len > 1 && H[i].out(dq[len-1].inter(dq[len-2]))) {
+            dq.pop_back();
+            --len;
+        }
+
+        // Remove from the front of the deque while first half-plane is redundant
+        while (len > 1 && H[i].out(dq[0].inter(dq[1]))) {
+            dq.pop_front();
+            --len;
+        }
+
+        // Special case check: Parallel half-planes
+        if (len > 0 && fabsl(H[i].pq.cross(dq[len-1].pq)) < eps) {
+            // Opposite parallel half-planes that ended up checked against each other.
+            if (H[i].pq.dot(dq[len-1].pq) < 0.0)
+                return vector<vec2<ld>>();
+
+            // Same direction half-plane: keep only the leftmost half-plane.
+            if (H[i].out(dq[len-1].p)) {
+                dq.pop_back();
+                --len;
+            }
+            else continue;
+        }
+
+        // Add new half-plane
+        dq.push_back(H[i]);
+        ++len;
+    }
+
+    // Final cleanup: Check half-planes at the front against the back and vice-versa
+    while (len > 2 && dq[0].out(dq[len-1].inter(dq[len-2]))) {
+        dq.pop_back();
+        --len;
+    }
+
+    while (len > 2 && dq[len-1].out(dq[0].inter(dq[1]))) {
+        dq.pop_front();
+        --len;
+    }
+
+    // Report empty intersection if necessary
+    if (len < 3) return vector<vec2<ld>>();
+
+    // Reconstruct the convex polygon from the remaining half-planes.
+    vector<vec2<ld>> ret(len);
+    for(int i = 0; i+1 < len; i++) {
+        ret[i] = dq[i].inter(dq[i+1]);
+    }
+    ret.back() = dq[len-1].inter(dq[0]);
+
+    // Check if area is non-zero
+    ld area = 0;
+    for(int i = 0; i < ret.size(); i++) {
+        int nxt = i+1;
+        if (nxt == ret.size()) nxt = 0;
+        area += ret[i].x*ret[nxt].y - ret[i].y*ret[nxt].x;
+    }
+    if (abs(area)/2.0 < eps) return vector<vec2<ld>>();
+
+    return ret;
+}
+```
+
+= janY's Algorithms
+
+== Modulo
+
+```cpp
+int mod;
+int mod_f(long long a){
+    return ((a%mod)+mod)%mod;
+}
+ 
+int m_add(long long a, long long b){
+    return mod_f((long long)mod_f(a) + mod_f(b));
+}
+ 
+int m_mult(long long a, long long b){
+    return mod_f((long long)mod_f(a) * mod_f(b));
+}
+
+// C function for extended Euclidean Algorithm (used to
+// find modular inverse.
+int gcdExt(int a, int b, int *x, int *y) {
+    // Base Case
+    if (a == 0){
+        *x = 0, *y = 1;
+        return b;
+    }
+
+    int x1, y1; // To store results of recursive call
+    int gcd = gcdExt(b%a, a, &x1, &y1);
+
+    // Update x and y using results of recursive
+    // call
+    *x = y1 - (b/a) * x1;
+    *y = x1;
+    return gcd;
+}
+ 
+// Function to find modulo inverse of b. It returns
+// -1 when inverse doesn't
+int modInverse(int b, int m) {
+    int x, y; // used in extended GCD algorithm
+    int g = gcdExt(b, m, &x, &y);
+ 
+    // Return -1 if b and m are not co-prime
+    if (g != 1) return -1;
+ 
+    // m is added to handle negative x
+    return (x%m + m) % m;
+}
+ 
+// Function to compute a/b under modulo m
+int m_divide(long long a, long long b) {
+    a = a % mod;
+    int inv = modInverse(b, mod);
+    if (inv == -1)
+       return -1;
+    else
+       return (inv * a) % mod;
+}
+ 
+// exponent function (with mod)
+int m_pow(long long base, long long exp) {
+    base %= mod;
+    int result = 1;
+    while (exp > 0) {
+        if (exp & 1) result = ((long long)result * base) % mod;
+        base = ((long long)base * base) % mod;
+        exp >>= 1;
+    }
+    return result;
+}
+
+```
+
+== Factorization
+
+```cpp
+vector<int> getPrimes(int n)
+{
+    vector<int> res;
+    bool prime[n + 1];
+    memset(prime, true, sizeof(prime));
+    for (ll p = 2; p * p <= n; p++) {
+        if (prime[p] == true) {
+            for (ll i = p * p; i <= n; i += p){
+                prime[i] = false;
+            }  
+        }
+    }
+    for (int p = 2; p <= n; p++){
+        if (prime[p]){
+            res.push_back(p);
+        }
+    }  
+    return res;
+}
+
+// only prime factors
+vector<int> primes;
+vector<int> get_prime_factors(long long n){
+    vector<int> factors;
+    if (n == 1) return factors;
+    for (auto &i : primes){
+        if (i*i > n) break;
+        if (n%i==0){
+            factors.push_back(i);
+            while (n%i==0) n/=i;
+        }
+    }
+    if (n != 1) factors.push_back(n);
+    return factors;
+}
+
+map<int,int> get_prime_factors(long long n){
+    map<int,int> factors;
+    if (n == 1) return factors;
+    for (auto &i : primes){
+        if (i*i > n) break;
+        while (n%i==0) {
+            factors[i]++;
+            n/=i;
+        }
+    }
+    if (n != 1) factors[n]++;
+    return factors;
+}
+
+vector<int> get_factors(long long n){
+    vector<int> factors;
+    for (int i = 1; i*i <= n; i++){
+        if (n%i==0){
+            factors.push_back(i);
+            if (i*i != n) factors.push_back(n/i);
+        }
+    }
+    //factors.push_back(n);
+    return factors;
+}
+```
+
+== Combinatorics
+
+```cpp
+long long nPr(long long n, long long r){
+    if (r > n) return 0;
+    if (n-r < r) r = n-r;
+    long long count = r;
+    long long result = 1;
+    while (count > 0){
+        //result = m_mult(result, n);
+        result = result * n;
+        n--;
+        count--;
+    }
+    return result;
+}
+
+// slow nCr
+long long nCr(long long n, long long r){
+    if (r > n) return 0;
+    if (n-r < r) r = n-r;
+    long long count = r;
+    long long result = 1;
+    while (count > 0){
+        //result = m_mult(result, n);
+        result = result * n;
+        n--;
+        count--;
+    }
+    long long num = 1;
+    while (num <= r){
+        //result = m_divide(result, num);
+        result = result / num;
+        num++;
+    }
+    return result;
+}
+
+// fast nCr (REQ modulo m_mult, modInverse)
+int MAX_CHOOSE = 3e5;
+vector<long long> inverse_fact(MAX_CHOOSE+5);
+vector<long long> fact(MAX_CHOOSE+5);
+ 
+long long fast_nCr(long long n, long long r) {
+    if (n < r || r < 0) return 0;
+    return (((fact[n] * inverse_fact[r]) % mod) * inverse_fact[n-r]) % mod;
+}
+
+void precalc_fact(int n){
+    fact[0] = fact[1] = 1;
+    for (long long i = 2; i <= n; i++){
+        fact[i] = (fact[i-1]*i) % mod;
+    }
+    inverse_fact[0] = inverse_fact[1] = 1;
+    for (long long i = 2; i <= n; i++){
+        inverse_fact[i] = (modInverse(i, mod) * inverse_fact[i-1]) % mod;
+    }
+}
+```
+
+== Disjoint Set Union
+
+```cpp
+struct disjSet { // Disjoint set
+    int *rank, *parent, n;
+    disjSet() {}
+	disjSet(int n) {init(n);}
+    void init(int n){
+        rank = new int[n];
+		parent = new int[n];
+		this->n = n;
+		for (int i = 0; i < n; i++) {
+            rank[i] = 0;
+            parent[i] = i;
+        }
+    }
+	int find(int a) {
+		if (parent[a] != a){
+            //return find(parent[a]); // no path compression
+            parent[a] = find(parent[a]); // path compression
+        }
+		return parent[a];
+	}
+	void Union(int a, int b) {
+		int a_set = find(a);
+		int b_set = find(b);
+		if (a_set == b_set) return;
+		if (rank[a_set] < rank[b_set]) {
+            update_union(a_set, b_set);
+		} else if (rank[a_set] > rank[b_set]) {
+            update_union(b_set, a_set);
+		} else {
+            update_union(b_set, a_set);
+			rank[a_set] = rank[a_set] + 1;
+		}
+	}
+    // change merge behaviour here
+    void update_union(int a, int b){ // merge a into b
+        parent[a] = b;
+    }
+};
+```
+
+== Merge Sort Tree
+
+```cpp
+struct MergeSortTree {
+
+    int size;
+    vector<vector<ll>> values;
+
+    void init(int n){
+        size = 1;
+        while (size < n){
+            size *= 2;
+        }
+        values.resize(size*2, vl(0));
+    }
+
+    void build(vl &arr, int x, int lx, int rx){
+        if (rx - lx == 1){
+            if (lx < arr.size()){
+                values[x].pb(arr[lx]);
+            } else {
+                values[x].pb(-1);
+            }
+            return;
+        }
+        int m = (lx+rx)/2;
+        build(arr, 2 * x + 1, lx, m);
+        build(arr, 2 * x + 2, m, rx);
+        
+        int i = 0;
+        int j = 0;
+        int asize = values[2*x+1].size();
+        while (i < asize && j < asize){
+            if (values[2*x+1][i] < values[2*x+2][j]){
+                values[x].pb(values[2*x+1][i]);
+                i++;
+            } else {
+                values[x].pb(values[2*x+2][j]);
+                j++;
+            }
+        }
+        while (i < asize) {
+            values[x].pb(values[2*x+1][i]);
+            i++;
+        }
+        while (j < asize){
+            values[x].pb(values[2*x+2][j]);
+            j++;
+        }
+    }
+    void build(vl &arr){
+        build(arr, 0, 0, size);
+    }
+
+    int calc(int l, int r, int x, int lx, int rx, int k){
+        if (lx >= r || rx <= l) return 0;
+        
+        if (lx >= l && rx <= r) { // CHANGE HEURISTIC HERE (elements strictly less than k currently)
+            int lft = -1;
+            int rght = values[x].size();
+            while (rght - lft > 1){
+                int mid = (lft+rght)/2;
+                if (values[x][mid] < k){
+                    lft = mid;
+                } else {
+                    rght = mid;
+                }
+            }
+            return lft+1;
+        }
+
+        int m = (lx+rx)/2;
+        int values1 = calc(l, r, 2*x+1, lx, m, k);
+        int values2 = calc(l, r, 2*x+2, m, rx, k);
+        return values1 + values2;
+    }
+    int calc(int l, int r, int k){
+        return calc(l, r, 0, 0, size, k);
+    }
+};
+```
+
+== Fenwick Tree
+
+```cpp
+struct fenwick { // point update (delta), range sum 
+    ll* bit;
+    int fsize;
+    
+    fenwick(){}
+    fenwick(int n){ init(n); }
+    ~fenwick(){ delete[] bit; }
+    
+    void init(int n){
+        bit = new ll[n+1];
+        fsize = n;
+        for (int i = 1; i <= n; i++){
+            bit[i] = 0;
+        }
+    }
+
+    int lsb(int x){ // Least significant bit
+        return x&(-x);
+    }
+
+    ll query(int v){
+        ll sum = 0;
+        while (v > 0){
+            sum += bit[v];
+            v -= lsb(v);
+        }
+        return sum;
+    }
+
+    void add(int v, int delta){
+        v++; // because 1 indexed
+        while (v <= fsize){
+            bit[v] += delta;
+            v += lsb(v);
+        }
+    }
+
+    void build(vector<ll> &inp){
+        for (int i = 1; i <= inp.size(); i++){
+            bit[i] = inp[i-1];
+        }
+        for (int i = 1; i <= inp.size(); i++){
+            int p = i + lsb(i);
+            if (p <= fsize){
+                bit[p] += bit[i];
+            }
+        }
+    }
+
+    ll calc(int l, int r){ // sum from l to r inclusive (of the original array)
+        return query(r+1) - query(l);
+    }
+};
+```
+
+== Fenwick Tree (Range Updates)
+
+```cpp
+struct fenwick { // range update
+    ll* bit1;
+    ll* bit2;
+    int fsize;
+
+    fenwick(){}
+    fenwick(int n){
+        init(n);
+    }
+
+    ~fenwick(){
+        delete bit1;
+        delete bit2;
+    }
+
+    void init(int n){
+        bit1 = new ll[n+1];
+        bit2 = new ll[n+1];
+        fsize = n;
+        for (int i = 1; i <= n; i++){
+            bit1[i] = 0;
+            bit2[i] = 0;
+        }
+    }
+
+    ll getSum(ll BITree[], int index){
+        ll sum = 0; 
+        index++;
+        while (index > 0) {
+            sum += BITree[index];
+            index -= index & (-index);
+        }
+        return sum;
+    }
+    
+    void updateBIT(ll BITree[], int index, ll val){
+        index++;
+        while (index <= fsize) {
+            BITree[index] += val;
+            index += index & (-index);
+        }
+    }
+    
+    ll sum(ll x){
+        return (getSum(bit1, x) * x) - getSum(bit2, x);
+    }
+    
+    void add(ll l, ll r, ll val){ // add val to range l:r INCLUSIVE
+        updateBIT(bit1, l, val);
+        updateBIT(bit1, r + 1, -val);
+        updateBIT(bit2, l, val * (l - 1));
+        updateBIT(bit2, r + 1, -val * r);
+    }
+    
+    ll calc(ll l, ll r){ // sum on range l:r INCLUSIVE
+        return sum(r) - sum(l - 1);
+    }
+};
+```
+
+== Kosaraju's Algorithm
+
+```cpp
+// kosaraju's algorithm - find strongly connected components (SCC) in a directed graph O(V+E) 
+// V - vertex count, E - edge count
+// SCC - every vertex in a component has a path to every other vertex in the same component
+// add directed edges, run .work(), answer stored in scc 
+struct kosaraju {
+    vector<vector<int>> g, gT, scc;
+    stack<int> stck;
+    vector<int> visited;
+    int siz;
+
+    kosaraju() {}
+    kosaraju(int siz){
+        init(siz);
+    }
+
+    void init(int siz){
+        this->siz = siz;
+        g.assign(siz, vector<int>(0));
+        gT.assign(siz, vector<int>(0));
+    }
+
+    void add_edge(int u, int v){ // directed edge from u to v
+        g[u].push_back(v);
+        gT[v].push_back(u);
+    }
+
+    void dfs(int loc){
+        if (visited[loc]) return;
+        visited[loc] = 1;
+        for (auto &i : g[loc]) dfs(i);
+        stck.push(loc);
+    }
+
+    void dfsT(int loc){
+        if (visited[loc]) return;
+        visited[loc] = 1;
+        scc.back().push_back(loc);
+        for (auto &i : gT[loc]) dfsT(i);
+    }
+
+    void work(){ // call after adding all the edges to get scc
+        scc.clear();
+        visited.assign(siz, 0);
+        for (int i = 0; i < siz; i++) dfs(i);
+        visited.assign(siz, 0);
+        while (stck.size()){
+            int top = stck.top();
+            stck.pop();
+            if (visited[top] == 0){
+                scc.pb(vi(0));
+                dfsT(top);
+            }
+        }
+    }
+};
+```
+
+== Range Minimum Query
+
+```cpp
+typedef int typ;
+struct RMQ {
+    vector<vector<typ>> arr;
+    bool do_min_query = 1; // 0 = max query; 1 = min query
+
+    RMQ(){}
+    RMQ(vector<typ> &a){
+        build(a);
+    }
+    RMQ(vector<typ> &a, bool is_min) {
+        do_min_query = is_min;
+        build(a);
+    }
+    
+    void build(vector<typ> &a){
+        arr.pb(a);
+        int len = 2, at = 1;
+        while (len <= (int)a.size()){
+            arr.pb(vector<typ>(0));
+            int pos = 0;
+            while (pos+len <= (int)a.size()){
+                typ val = max(arr[at-1][pos], arr[at-1][pos+len/2]);
+                if (do_min_query) val = min(arr[at-1][pos], arr[at-1][pos+len/2]);
+                arr[at].pb(val);
+                pos++;
+            }
+            len *= 2; at++;
+        }
+    }
+
+    typ calc(int l, int r){ // 0 indexed, [l; r] inclusive
+        int dist = r-l+1;
+        int bigbit = 31-__builtin_clz(dist);
+        typ ret = max(arr[bigbit][l], arr[bigbit][r-(1<<bigbit)+1]);
+        if (do_min_query) ret = min(arr[bigbit][l], arr[bigbit][r-(1<<bigbit)+1]);
+        return ret;
+    }
+};
+```
+
+== Polynomial Rolling Hash
+
+```cpp
+
+int gcdExt(int a, int b, int *x, int *y) {
+    if (a == 0){
+        *x = 0, *y = 1;
+        return b;
+    }
+    int x1, y1;
+    int gcd = gcdExt(b%a, a, &x1, &y1);
+    *x = y1 - (b/a) * x1;
+    *y = x1;
+    return gcd;
+}
+
+int modInverse(int b, int m) {
+    int x, y; 
+    int g = gcdExt(b, m, &x, &y);
+    if (g != 1) return -1;
+    return (x%m + m) % m;
+}
+
+int m_divide(long long a, long long b, long long md) {
+    a = a % md;
+    int inv = modInverse(b, md);
+    if (inv == -1)
+       return -1;
+    else
+       return (inv * a) % md;
+}
+
+struct poly_hash {
+    const vector<ll> mods = {(ll)1e9+9, (ll)1e9+7};
+    const vector<ll> p = {59, 61};
+    vector<vector<ll>> pref_hash, powers, divs;
+
+    void work(string &s){
+        // precalc powers
+        powers.clear();
+        powers.resize(2);
+        divs.clear();
+        divs.resize(2);
+        for (int i = 0; i < 2; i++){
+            powers[i].push_back(1);
+            divs[i].push_back(1);
+            for (int j = 0; j < s.size(); j++){
+                powers[i].push_back((powers[i].back()*p[i])%mods[i]);
+                divs[i].push_back(m_divide(divs[i].back(), p[i], mods[i]));
+            }
+        }
+
+        pref_hash.clear();
+        pref_hash.resize(2);
+        for (int i = 0; i < 2; i++){
+            pref_hash[i].push_back(0);
+            for (int j = 0; j < s.size(); j++){
+                int val = s[j]-'a'+1; // a -> 1, b -> 2...
+                pref_hash[i].push_back((pref_hash[i].back()+val*powers[i][j])%mods[i]);
+            }
+        }
+    }
+    
+    pair<ll, ll> calc(int l, int r){ // [l; r] inclusive!
+        ll hash1 = ((pref_hash[0][r+1]-pref_hash[0][l]+mods[0])*divs[0][l])%mods[0];
+        ll hash2 = ((pref_hash[1][r+1]-pref_hash[1][l]+mods[1])*divs[1][l])%mods[1];
+        return {hash1, hash2};
+    }
+};
+```
+
+== Matrix Template
+
+```cpp
+template<typename V> struct Matrix {
+    int rows, cols;
+    vector<vector<V>> mat;
+    
+    Matrix(){}
+    Matrix(int row, int col){
+        resize(row, col);
+    }
+
+    void resize(int row, int col){
+        mat.assign(row, vector<V>(col));
+        rows = row;
+        cols = col;
+    }
+
+    Matrix<V> operator* (Matrix<V> const& oth){
+        assert(cols == oth.rows);
+        Matrix<V> res(rows, oth.cols);
+        for (int i = 0; i < rows; i++){
+            for (int j = 0; j < oth.cols; j++){
+                for (int z = 0; z < cols; z++){
+                    res.mat[i][j] += mat[i][z]*oth.mat[z][j];
+                    res.mat[i][j] %= mod; // if need mod
+                }
+            }
+        }
+        return res;
+    }
+
+    Matrix<V> exp(ll pow){ // A^(pow)
+        assert(rows == cols);
+        Matrix<V> res(rows, cols);
+        for (int i = 0; i < rows; i++) res.mat[i][i] = 1;
+        Matrix<V> mult = *this;
+        while (pow){
+            if (pow&1) res = res*mult;
+            mult = mult*mult;
+            pow /= 2;
+        }
+        return res;
+    }
+
+    void print(){
+        int i, j;
+        fo(i, rows) {
+            fo(j, cols) cout << mat[i][j] << " ";
+            cout << "\n";
+        }
+        cout << "\n";
+    }
+};
+```
+
+== Convex Hull
+
+```cpp
+typedef pair<ll, ll> P;
+ll cross(P a, P b) {return a.fi*b.se - a.se*b.fi;}
+ll cross_from(P start, P a, P b) {
+    a.fi -= start.fi;
+    a.se -= start.se;
+    b.fi -= start.fi;
+    b.se -= start.se;
+    return cross(a, b);
+}
+vector<P> convexHull(vector<P> pnts) {
+	if (pnts.size() <= 1) return pnts;
+	sort(pnts.begin(), pnts.end());
+	vector<P> h(pnts.size()+1);
+	int s = 0, t = 0;
+	for (int it = 2; it--; s = --t, reverse(pnts.begin(), pnts.end()))
+		for (P p : pnts) {
+			while (t >= s + 2 && cross_from(h[t-2], h[t-1], p) <= 0) t--;
+			h[t++] = p;
+		}
+	return {h.begin(), h.begin() + t - (t == 2 && h[0] == h[1])};
+}
+```
+
+== Prufer Codes
+
+```cpp
+// there are n^(n-2) different trees (labeled trees)
+
+// multinomial coefficients: n choose n1, n2, n3, …, nk - number of ways to partition n elements into k distinct groups of sizes n1, n2, n3, …, nk.
+// n! / (n1! * n2! * … * nk!)
+
+// multinomial theorem:
+// (x1 + x2 + … + xm)^p = sum[ci>=0 & sum ci = p] (x1^c1 * x2^c2 * … * xm^cm * (p choose c1, c2, …, ck))
+
+// 0 indexed
+vector<vector<int>> prufer_decode(vector<int> &code) {
+    vector<vector<int>> g(code.size()+2);
+    vector<int> degrees(g.size(), 1);
+    for (auto &i : code) degrees[i]++;
+    int nxt = g.size(), ptr = 0;
+    for (int i = 0; i < code.size(); i++) {
+        if (nxt > ptr) {
+            while (degrees[ptr] != 1) ptr++;
+            nxt = ptr;
+        }
+        g[nxt].push_back(code[i]);
+        g[code[i]].push_back(nxt);
+        degrees[nxt] = 0;
+        if (--degrees[code[i]] == 1) nxt = code[i];
+        else nxt = g.size();
+    }
+    if (nxt > ptr) while (degrees[ptr] != 1) ptr++;
+    else ptr = nxt;
+    g[g.size()-1].push_back(ptr);
+    g[ptr].push_back(g.size()-1);
+    return g;
+}
+
+int *prufer_parent;
+void dfs(int at, int from, vector<vector<int>> &g) {
+    prufer_parent[at] = from;
+    for (auto &i : g[at]) {
+        if (i == from) continue;
+        dfs(i, at, g);
+    }
+}
+// 0 indexed
+vector<int> prufer_encode(vector<vector<int>> &g) {
+    if (g.size() <= 2) return vector<int>();
+    prufer_parent = new int[g.size()];
+    dfs(g.size()-1, g.size()-1, g); // will never be removed
+    int *degrees = new int[g.size()];
+    for (int i = 0; i < g.size(); i++) degrees[i] = g[i].size();
+    int nxt = g.size(), ptr = 0;
+    vector<int> code(g.size()-2);
+    for (int i = 0; i < g.size()-2; i++) {
+        if (nxt > ptr) {
+            while (degrees[ptr] != 1) ptr++;
+            nxt = ptr;
+        }
+        code[i] = prufer_parent[nxt];
+        degrees[nxt] = 0;
+        if (--degrees[prufer_parent[nxt]] == 1) nxt = prufer_parent[nxt];
+        else nxt = g.size();
+    }
+    return code;
+}
+```
+
+== Segment tree
+
+```cpp
+struct get_item { ll sum; };
+struct set_item { ll val; };
+struct segtree {
+    int size;
+    get_item *values;
+    get_item NEUTRAL_ELEMENT = {0}; // dont forget to use brain here please
+
+    get_item merge(get_item &a, get_item &b){
+        return {a.sum + b.sum};
+    }
+    void apply(get_item &x, set_item &y){
+        x.sum = y.val;
+    }
+ 
+    void init(int n){
+        size = 1;
+        while (size < n) size *= 2;
+        values = new get_item[size*2];
+        fill_n(values, size*2, NEUTRAL_ELEMENT);
+    }
+ 
+    void upd(int i, set_item &v, int x, int lx, int rx){
+        if (rx - lx == 1){
+            apply(values[x], v);
+            return;
+        }
+        int m = (lx + rx) / 2;
+        if (i < m) upd(i, v, 2*x+1, lx, m);
+        else upd(i, v, 2*x+2, m, rx);
+        values[x] = merge(values[2*x+1], values[2*x+2]);
+    }
+    void upd(int i, set_item v){
+        upd(i, v, 0, 0, size);
+    }
+ 
+    get_item calc(int l, int r, int x, int lx, int rx){
+        if (lx >= r || rx <= l) return NEUTRAL_ELEMENT;
+        if (lx >= l && rx <= r) return values[x];
+        int m = (lx+rx)/2;
+        get_item v1 = calc(l, r, 2*x+1, lx, m);
+        get_item v2 = calc(l, r, 2*x+2, m, rx);
+        return merge(v1, v2);
+    }
+    // INCLUSIVE
+    get_item calc(int l, int r){
+        return calc(l, r+1, 0, 0, size);
+    }
+    
+    void build(vector<set_item> &arr, int x, int lx, int rx){ // optional
+        if (rx - lx == 1){
+            if (lx < arr.size()) apply(values[x], arr[lx]);
+            return;
+        }
+        int m = (lx+rx)/2;
+        build(arr, 2*x+1, lx, m);
+        build(arr, 2*x+2, m, rx);
+        values[x] = merge(values[2*x+1], values[2*x+2]);
+    }
+    void build(vector<set_item> &arr){
+        build(arr, 0, 0, size);
+    }
+};
+```
+
+== NTT
+
+```cpp
+int gcdExt(int a, int b, int *x, int *y) {
+    // Base Case
+    if (a == 0){
+        *x = 0, *y = 1;
+        return b;
+    }
+
+    int x1, y1; // To store results of recursive call
+    int gcd = gcdExt(b%a, a, &x1, &y1);
+
+    // Update x and y using results of recursive
+    // call
+    *x = y1 - (b/a) * x1;
+    *y = x1;
+    return gcd;
+}
+
+int modInverse(int b, int m) {
+    int x, y; 
+    int g = gcdExt(b, m, &x, &y);
+    if (g != 1) return -1;
+    return (x%m + m) % m;
+}
+
+const int mod = 998244353;
+const int root = 15311432;
+const int root_1 = modInverse(root, mod);
+const int root_pw = 1 << 23;
+
+void fft(vector<int> & a, bool invert) {
+    int n = a.size();
+
+    for (int i = 1, j = 0; i < n; i++) {
+        int bit = n >> 1;
+        for (; j & bit; bit >>= 1)
+            j ^= bit;
+        j ^= bit;
+
+        if (i < j)
+            swap(a[i], a[j]);
+    }
+
+    for (int len = 2; len <= n; len <<= 1) {
+        int wlen = invert ? root_1 : root;
+        
+        for (int i = len; i < root_pw; i <<= 1)
+            wlen = (int)(1LL * wlen * wlen % mod);
+        
+        for (int i = 0; i < n; i += len) {
+            int w = 1;
+            for (int j = 0; j < len / 2; j++) {
+                int u = a[i+j], v = (int)(1LL * a[i+j+len/2] * w % mod);
+                a[i+j] = u + v < mod ? u + v : u + v - mod;
+                a[i+j+len/2] = u - v >= 0 ? u - v : u - v + mod;
+                w = (int)(1LL * w * wlen % mod);
+            }
+        }
+    }
+
+    if (invert) {
+        int n_1 = modInverse(n, mod);
+        for (int & x : a)
+            x = (int)(1LL * x * n_1 % mod);
+    }
+}
+
+// polynomial multiplication
+vector<int> multiply(vector<int> const& a, vector<int> const& b) {
+    vector<int> fa(a.begin(), a.end()), fb(b.begin(), b.end());
+    int n = 1;
+    while (n < a.size() + b.size()) 
+        n <<= 1;
+    fa.resize(n);
+    fb.resize(n);
+
+    fft(fa, false);
+    if (a == b) {
+        fb = fa;
+    } else {
+        fft(fb, false);
+    }
+    
+    for (int i = 0; i < n; i++) {
+        fa[i] = ((ll)fa[i]*fb[i])%mod;
+    }
+    fft(fa, true);
+
+    vector<int> result(a.size() + b.size() - 1);
+    for (int i = 0; i < result.size(); i++)
+        result[i] = fa[i];
+    return result;
+}
+
+vi powz(vi a, ll p){
+    vi base = a;
+    vi ans(1, 1);
+    while (p) {
+        if (p&1) ans = multiply(ans, base);
+        base = multiply(base, base);
+        p >>= 1;
+    }
+    return ans;
+}
+```
+
 
 = Out of ideas?
 
