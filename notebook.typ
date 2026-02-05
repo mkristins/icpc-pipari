@@ -1,17 +1,25 @@
-#set page(flipped: true,
-margin: (
-  left: 0.8cm,
-  right: 0.8cm,
-  top: 1cm,
-  bottom: 1cm
-),
-header: context [
-    #h(1fr)
-    #counter(page).display(
-        "1/1",
-        both: true,
+#set page(
+  flipped: true,
+  margin: (
+    left: 0.8cm,
+    right: 0.8cm,
+    top: 1cm,
+    bottom: 1cm,
+  ),
+  header: context [
+    #grid(
+      columns: (1fr, auto),
+      align: (left, right),
+      [
+        #text(size: 10pt)[University of Latvia: *Scrupulous strawberries*]
+      ],
+      [
+        #counter(page).display("1/1", both: true)
+      ],
     )
-])
+  ],
+)
+
 
 #set heading(numbering: "1.")
 #set align(center)
@@ -25,9 +33,7 @@ header: context [
     size: 10pt,
     font: "New Computer Modern"
 )
-University of Latvia
 
-"Scrupulous strawberries" (LU)
 - Valters Kalniņš
 - Kristaps Štāls
 - Matīss Kristiņš
