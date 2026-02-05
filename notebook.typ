@@ -27,7 +27,7 @@ header: context [
 )
 University of Latvia
 
-"Skrupulozās zemenītes" (LU)
+"Scrupulous strawberries" (LU)
 - Valters Kalniņš
 - Kristaps Štāls
 - Matīss Kristiņš
